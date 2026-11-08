@@ -21,7 +21,9 @@ echo "ZEROS_BOOT_OK kernel=$(/bin/busybox uname -r)"
 INIT
 chmod +x "$W/rd/init"
 (cd "$W/rd" && find . | cpio -o -H newc --quiet | gzip > "$W/initrd.gz")
-timeout 120 qemu-system-x86_64 -m 512 -nographic -no-reboot \
+ACCEL=(); [ -w /dev/kvm ] && ACCEL=(-enable-kvm)
+timeout 300 qemu-system-x86_64 "${ACCEL[@]}" -cpu max -m 1024 -nographic -no-reboot -net none \
   -kernel arch/x86/boot/bzImage -initrd "$W/initrd.gz" \
-  -append "console=ttyS0 panic=1" | tee "$W/boot.log" || true
+  -append "console=ttyS0,115200 earlyprintk=serial,ttyS0,115200 loglevel=7 panic=-1 rdinit=/init" 2>&1 | tee "$W/boot.log" || true
+echo "---- last boot log lines ----"; tail -n 20 "$W/boot.log"
 grep -q ZEROS_BOOT_OK "$W/boot.log" && echo "PASS: kernel $VER boots" || { echo "FAIL"; exit 1; }

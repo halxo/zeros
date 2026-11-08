@@ -27,7 +27,11 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: sudo apt-get update && sudo apt-get install -y qemu-system-x86 busybox-static bc flex bison libssl-dev libelf-dev cpio
-      - run: scripts/kernel-boot-test.sh
+      - id: kv
+        run: echo "v=$(PYTHONPATH=zeros_py python3 -c 'from zeros import kernel;print(kernel.latest_stable())')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with: { path: /tmp/kboot, key: "kboot-${{ steps.kv.outputs.v }}" }
+      - run: KERNEL_VERSION=${{ steps.kv.outputs.v }} scripts/kernel-boot-test.sh
   iso:
     needs: test
     runs-on: ubuntu-latest

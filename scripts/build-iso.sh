@@ -12,8 +12,10 @@ echo "Base ISO: $REL"
 curl -fsSL -o base.iso "$BASE/$REL"
 curl -fsSL -o base.iso.sha256 "$BASE/$REL.sha256" 2>/dev/null || true
 if [ -s base.iso.sha256 ]; then (grep -h "\.iso" base.iso.sha256 | awk '{print $1"  base.iso"}' | head -1 | sha256sum -c -); fi
-# extract squashfs
-xorriso -osirrox on -indev base.iso -extract /image.squashfs image.squashfs
+# extract the whole ISO tree (so we can rebuild it with the original boot setup)
+xorriso -osirrox on -indev base.iso -extract / tree >/dev/null
+chmod -R u+w tree
+mv tree/image.squashfs image.squashfs
 unsquashfs -d root image.squashfs
 # ---- inject Zeros ----
 install -d root/usr/lib/zeros/python root/usr/local/bin root/etc/skel/.config
@@ -37,9 +39,11 @@ cat > root/etc/motd <<MOTD
                                      3. zeros-install /dev/sdX --really   (installs!)
 MOTD
 echo "zeros" > root/etc/hostname
-mksquashfs root image.squashfs.new -comp xz -noappend -quiet
-# ---- repack ISO, preserving boot records ----
-xorriso -indev base.iso -outdev "$OUT/zeros-$TAG.iso" -boot_image any replay \
-  -volid ZEROS_LIVE -map image.squashfs.new /image.squashfs -commit
+mksquashfs root tree/image.squashfs -comp xz -noappend -quiet
+# ---- rebuild ISO with the ORIGINAL boot records (BIOS + UEFI hybrid) ----
+# Replaying boot data in-place breaks on the hybrid GPT; as_mkisofs reproduces it for a fresh image.
+eval "BOOTOPTS=( $(xorriso -indev base.iso -report_system_area as_mkisofs -report_el_torito as_mkisofs 2>/dev/null | grep -v -e '^xorriso' -e '^-V ' -e '^--modification-date') )"
+printf '%s\n' "${BOOTOPTS[@]}" | head -30
+xorriso -as mkisofs -r -J -joliet-long -iso-level 3 -V "ZEROS_LIVE" "${BOOTOPTS[@]}" -o "$OUT/zeros-$TAG.iso" tree
 ( cd "$OUT" && sha256sum "zeros-$TAG.iso" > "zeros-$TAG.iso.sha256" )
 ls -lh "$OUT"
