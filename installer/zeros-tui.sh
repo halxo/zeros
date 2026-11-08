@@ -101,7 +101,7 @@ Are you sure you want to proceed?" 16 65
 # 7. Execute Installation with Progress Bar
 (
   echo "10"; echo "XXX"; echo "Detecting hardware profile and CPU optimizations..."; echo "XXX"
-  PROFILE=$(zeros-detect 2>/dev/null || python3 -m zeros.detect 2>/dev/null || true)
+  zeros-detect >/dev/null 2>&1 || python3 -m zeros.detect >/dev/null 2>&1 || true
   sleep 1
 
   echo "25"; echo "XXX"; echo "Partitioning and formatting $TARGET_DISK..."; echo "XXX"
