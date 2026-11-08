@@ -11,16 +11,21 @@ def latest_stable(fetch=None) -> str:
 
 
 def build_script(version: str, workdir="/usr/src") -> list:
-    """Shell steps: defconfig -> localmodconfig (only modules in use) -> build."""
+    """Shell steps: defconfig -> localmodconfig -> ensure essential hardware drivers -> build."""
     major = version.split(".")[0]
     return [
         f"curl -fLO https://cdn.kernel.org/pub/linux/kernel/v{major}.x/linux-{version}.tar.xz",
         f"tar -C {workdir} -xf linux-{version}.tar.xz",
         f"cd {workdir}/linux-{version}",
         "make x86_64_defconfig",
-        # Needs the target's modules loaded (run from the live env after probing hardware)
+        # Auto-trim to current machine hardware
         "yes '' | make localmodconfig",
-        "scripts/config -e BTRFS_FS -e EFI_STUB -e DRM -e SQUASHFS",
+        # Explicitly enable drivers required to boot natively on ANY modern PC hardware:
+        # NVMe, SATA AHCI, USB storage, Btrfs, EFI Stub, VFAT/ESP, Display SimpleDRM/SysFB, Keyboard/Mouse HID
+        "scripts/config -e BTRFS_FS -e BLK_DEV_NVME -e NVME_CORE -e SATA_AHCI -e USB_STORAGE "
+        "-e EFI_STUB -e EFI_PARTITION -e EFIVAR_FS -e VFAT_FS -e FAT_FS -e NLS_CODEPAGE_437 -e NLS_ISO8859_1 "
+        "-e DRM -e DRM_SIMPLEDRM -e SYSFB_SIMPLEFB -e FB_EFI -e INPUT_EVDEV -e KEYBOARD_ATKBD -e HID_GENERIC -e USB_HID "
+        "-e DEVTMPFS -e DEVTMPFS_MOUNT -e SQUASHFS -e KVM_GUEST",
         "make olddefconfig && make -j$(nproc) && make modules_install install",
     ]
 

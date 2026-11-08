@@ -19,6 +19,8 @@ class Profile:
     cores: int = 1
     mem_mb: int = 0
     video_cards: list = field(default_factory=list)
+    has_nvme: bool = False
+    has_wifi: bool = False
     uefi: bool = False
 
     def cache_key(self) -> str:
@@ -38,12 +40,18 @@ def parse_cpuinfo(text: str):
 
 def parse_lspci(text: str):
     cards = set()
+    has_nvme = False
+    has_wifi = False
     for line in text.splitlines():
         if re.search(r"VGA|3D|Display", line):
             m = re.search(r"\[([0-9a-f]{4}):[0-9a-f]{4}\]", line)
             if m and m.group(1) in GPU_VENDORS:
                 cards.update(GPU_VENDORS[m.group(1)].split())
-    return sorted(cards)
+        if re.search(r"Non-Volatile memory|NVMe", line, re.I):
+            has_nvme = True
+        if re.search(r"Network controller|Wireless|Wi-Fi", line, re.I):
+            has_wifi = True
+    return sorted(cards), has_nvme, has_wifi
 
 
 def detect_march() -> str:
@@ -70,10 +78,13 @@ def detect() -> Profile:
         lspci = subprocess.run(["lspci", "-nn"], capture_output=True, text=True, timeout=10).stdout
     except (OSError, subprocess.SubprocessError):
         lspci = ""
+    cards, has_nvme, has_wifi = parse_lspci(lspci)
     return Profile(cpu_model=model, march=detect_march(), cpu_flags=flags,
                    cores=os.cpu_count() or 1,
                    mem_mb=int(mem.group(1)) // 1024 if mem else 0,
-                   video_cards=parse_lspci(lspci) or ["fbdev"],
+                   video_cards=cards or ["fbdev"],
+                   has_nvme=has_nvme,
+                   has_wifi=has_wifi,
                    uefi=os.path.isdir("/sys/firmware/efi"))
 
 
@@ -88,7 +99,7 @@ MAKEOPTS="-j{jobs}"
 EMERGE_DEFAULT_OPTS="--jobs={max(1, jobs // 2)} --load-average={p.cores}"
 CPU_FLAGS_X86="{' '.join(p.cpu_flags)}"
 VIDEO_CARDS="{' '.join(p.video_cards)}"
-USE="wayland -systemd -gnome -kde elogind"
+USE="wayland -systemd -gnome -kde elogind btrfs wifi networkmanager"
 FEATURES="getbinpkg binpkg-request-signature"
 """
 

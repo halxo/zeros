@@ -7,8 +7,11 @@ def test_cpu_parse():
     assert m == "Foo CPU" and f == ["aes", "avx", "avx2", "sse", "sse2"]
 
 def test_lspci():
-    t = "00:02.0 VGA compatible controller [0300]: Intel [8086:46a6]\n01:00.0 3D controller [0302]: NVIDIA [10de:2504]"
-    assert detect.parse_lspci(t) == ["intel", "nvidia"]
+    t = "00:02.0 VGA compatible controller [0300]: Intel [8086:46a6]\n01:00.0 3D controller [0302]: NVIDIA [10de:2504]\n02:00.0 Non-Volatile memory controller [0108]: Samsung [144d:a809]\n03:00.0 Network controller [0280]: Intel Corporation Wi-Fi 6 AX200 [8086:2723]"
+    cards, nvme, wifi = detect.parse_lspci(t)
+    assert cards == ["intel", "nvidia"]
+    assert nvme is True
+    assert wifi is True
 
 def test_cache_key_stable_and_hw_specific():
     a = detect.Profile(march="znver3", cpu_flags=["avx2"])
