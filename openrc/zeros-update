@@ -1,0 +1,4 @@
+#!/sbin/openrc-run
+# Placeholder: scheduling is via cron/`zeros-update.timer` equivalent (see docs/ARCHITECTURE.md)
+description="Zeros rolling updater (run by cron: 0 */6 * * * zeros-update update)"
+start() { return 0; }

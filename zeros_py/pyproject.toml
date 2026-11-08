@@ -1,0 +1,8 @@
+[project]
+name = "zeros"
+version = "0.0.1"
+requires-python = ">=3.10"
+[project.scripts]
+zeros-update = "zeros.updater:main"
+[tool.pytest.ini_options]
+pythonpath = ["."]

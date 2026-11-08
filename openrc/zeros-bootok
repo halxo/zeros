@@ -1,0 +1,5 @@
+#!/sbin/openrc-run
+# Confirms a good boot after an update; if never reached, zeros-update rollback is used by the bootloader hook.
+description="Mark current Zeros boot as good"
+depend() { need localmount; after display-manager elogind; }
+start() { ebegin "Confirming boot"; /usr/bin/zeros-update boot-ok >/dev/null; eend $?; }
