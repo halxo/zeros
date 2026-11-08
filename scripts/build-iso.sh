@@ -99,10 +99,10 @@ menuentry 'Zeros OS (Live - Verbose Debug)' --class gnu-linux --class os {
 EOF
 
 # 4. Extract original boot options from base ISO (MBR and El Torito)
-eval "BOOTOPTS=( \$(xorriso -indev base.iso -report_system_area as_mkisofs -report_el_torito as_mkisofs 2>/dev/null | grep -v -e '^xorriso' -e '^-V ' -e '^--modification-date') )"
-printf '%s\n' "\${BOOTOPTS[@]}" | head -30
+eval "BOOTOPTS=( $(xorriso -indev base.iso -report_system_area as_mkisofs -report_el_torito as_mkisofs 2>/dev/null | grep -v -e '^xorriso' -e '^-V ' -e '^--modification-date') )"
+printf '%s\n' "${BOOTOPTS[@]}" | head -30
 
 # 5. Build final hybrid ISO with ZEROS_LIVE volume label
-xorriso -as mkisofs -r -J -joliet-long -iso-level 3 -V "$LABEL" "\${BOOTOPTS[@]}" -o "$OUT/zeros-$TAG.iso" tree
+xorriso -as mkisofs -r -J -joliet-long -iso-level 3 -V "$LABEL" "${BOOTOPTS[@]}" -o "$OUT/zeros-$TAG.iso" tree
 ( cd "$OUT" && sha256sum "zeros-$TAG.iso" > "zeros-$TAG.iso.sha256" )
 ls -lh "$OUT"
