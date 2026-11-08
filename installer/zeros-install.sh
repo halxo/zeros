@@ -6,6 +6,20 @@
 #   zeros-install /dev/sda --really     # install onto SATA SSD
 set -euo pipefail
 
+# If run without arguments on an interactive terminal, launch the TUI wizard
+if [ $# -eq 0 ]; then
+  DIR="$(dirname "$0")"
+  if [ -t 0 ] && [ -x "$DIR/zeros-tui.sh" ]; then
+    exec "$DIR/zeros-tui.sh"
+  elif [ -t 0 ] && command -v zeros-tui >/dev/null 2>&1; then
+    exec zeros-tui
+  else
+    echo "Usage: $0 /dev/sdX [--really]"
+    echo "Or run zeros-tui for the interactive wizard."
+    exit 1
+  fi
+fi
+
 DISK=${1:?usage: $0 /dev/sdX [--really]}
 GO=${2:-}
 run() { echo "+ $*"; [[ $GO == --really ]] && "$@" || true; }

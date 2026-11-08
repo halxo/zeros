@@ -12,6 +12,7 @@ xorriso -indev "$ISO" -ls / 2>&1 | grep -q image.squashfs && echo "✓ image.squ
 echo "==> Verifying injected Zeros components..."
 xorriso -osirrox on -indev "$ISO" -extract /image.squashfs /tmp/test-squashfs.img >/dev/null 2>&1
 unsquashfs -l /tmp/test-squashfs.img | grep -q 'usr/local/bin/zeros-install' && echo "✓ zeros-install injected"
+unsquashfs -l /tmp/test-squashfs.img | grep -q 'usr/local/bin/zeros-tui' && echo "✓ zeros-tui injected"
 unsquashfs -l /tmp/test-squashfs.img | grep -q 'usr/share/zeros-overlay' && echo "✓ zeros-overlay injected"
 rm -f /tmp/test-squashfs.img
 

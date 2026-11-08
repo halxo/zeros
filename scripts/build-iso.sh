@@ -26,6 +26,8 @@ unsquashfs -d root image.squashfs
 install -d root/usr/lib/zeros/python root/usr/local/bin root/etc/skel/.config
 cp -r "$REPO/zeros_py/zeros" root/usr/lib/zeros/python/
 cp "$REPO/installer/zeros-install.sh" root/usr/local/bin/zeros-install
+cp "$REPO/installer/zeros-tui.sh" root/usr/local/bin/zeros-tui
+ln -sf zeros-tui root/usr/local/bin/zeros-installer
 for t in detect:zeros-detect updater:zeros-update; do
   printf '#!/bin/sh\nPYTHONPATH=/usr/lib/zeros/python exec python3 -m zeros.%s "$@"\n' "${t%%:*}" > "root/usr/local/bin/${t##*:}"
 done
@@ -41,9 +43,10 @@ cat > root/etc/motd <<MOTD
   / /__ | |___|  _ <| |_| |___) |    Runs natively on any PC (UEFI & BIOS).
  /____| |_____|_| \_\\___/|____/
                                      Commands:
-                                       zeros-detect              (detect hardware & profile)
-                                       zeros-install /dev/sdX    (dry run: preview actions)
-                                       zeros-install /dev/sdX --really (install Zeros!)
+                                       zeros-installer           (Interactive GUI/TUI Wizard)
+                                       zeros-detect              (Detect hardware profile)
+                                       zeros-install /dev/sdX    (CLI dry-run installer)
+                                       zeros-install /dev/sdX --really
 MOTD
 echo "zeros" > root/etc/hostname
 

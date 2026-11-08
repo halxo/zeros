@@ -1,0 +1,13 @@
+# macOS Spotlight-style Wofi configuration for Zeros OS
+width=550
+height=350
+location=center
+show=drun
+prompt=Search Apps & Files...
+filter_rate=100
+allow_images=true
+image_size=28
+insensitive=true
+no_actions=true
+term=kitty
+EOF

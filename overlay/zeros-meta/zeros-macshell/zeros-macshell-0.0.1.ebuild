@@ -9,6 +9,9 @@ KEYWORDS="~amd64"
 RDEPEND="gui-wm/hyprland gui-apps/waybar x11-misc/nwg-dock-hyprland gui-apps/wofi gui-apps/swaybg x11-terms/kitty"
 src_unpack() { git-r3_src_unpack; }
 src_install() {
-	insinto /etc/skel/.config/hypr;  doins macshell/hypr/hyprland.conf
+	insinto /etc/skel/.config/hypr;   doins macshell/hypr/hyprland.conf
 	insinto /etc/skel/.config/waybar; doins macshell/waybar/config macshell/waybar/style.css
+	insinto /etc/skel/.config/wofi;   doins macshell/wofi/config macshell/wofi/style.css
+	dobin macshell/zeros-welcome.sh
+	dosym zeros-welcome.sh /usr/bin/zeros-welcome
 }
