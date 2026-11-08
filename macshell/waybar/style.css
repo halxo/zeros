@@ -1,0 +1,4 @@
+* { font-family: "Inter", sans-serif; font-size: 13px; border: none; }
+window#waybar { background: rgba(30,30,46,0.55); color: #fff; }
+#custom-zeros { padding: 0 14px; font-weight: bold; }
+#clock,#battery,#network,#pulseaudio { padding: 0 10px; }

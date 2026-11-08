@@ -1,0 +1,33 @@
+# Experimental: build binary packages for a reference hardware profile inside a Gentoo stage3 container
+# and publish them as a release asset keyed by the profile cache key. Manual only (long-running).
+name: Binary cache
+on:
+  workflow_dispatch:
+    inputs:
+      profile: { description: "generic | x86-64-v3 | znver3 | skylake", default: generic }
+permissions: { contents: write }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    container: { image: gentoo/stage3:latest, options: --privileged }
+    steps:
+      - run: emerge-webrsync && emerge -q dev-vcs/git dev-lang/python app-arch/zstd dev-util/github-cli
+      - uses: actions/checkout@v4
+      - name: Configure for profile
+        run: |
+          march=$(python3 - <<PY
+          import sys; sys.path.insert(0,"scripts"); sys.argv=["x","${{ inputs.profile }}"]
+          exec(open("scripts/cache-key.py").read().split("p = PROFILES")[0]); print(PROFILES["${{ inputs.profile }}"].march)
+          PY
+          )
+          sed -i "s/^COMMON_FLAGS=.*/COMMON_FLAGS=\"-march=$march -O2 -pipe\"/" /etc/portage/make.conf
+          echo 'FEATURES="buildpkg"' >> /etc/portage/make.conf
+      - run: emerge -q --buildpkg --usepkg sys-fs/btrfs-progs sys-apps/pciutils app-admin/sudo
+      - name: Publish
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          key=$(python3 scripts/cache-key.py "${{ inputs.profile }}")
+          tar -C /var/cache/binpkgs -I zstd -cf "cache-$key.tar.zst" .
+          gh release view rolling-cache >/dev/null 2>&1 || gh release create rolling-cache --title "Binary cache" --notes "Per-profile binpkgs" --prerelease
+          gh release upload rolling-cache "cache-$key.tar.zst" --clobber
