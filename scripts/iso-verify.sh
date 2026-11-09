@@ -38,11 +38,20 @@ done
 
 if [ -n "$OVMF_PATH" ]; then
   echo "Found OVMF firmware at $OVMF_PATH"
+  echo "--> Testing UEFI CD-ROM boot..."
   timeout 90 qemu-system-x86_64 "${ACCEL[@]}" -bios "$OVMF_PATH" -m 2048 -cdrom "$ISO" -boot d -nographic -serial mon:stdio -no-reboot 2>&1 | tee /tmp/uefi-boot.log || true
   if grep -Eqi 'Welcome to GRUB|Linux version|zeros' /tmp/uefi-boot.log; then
-    echo "✓ PASS: UEFI boot verified"
+    echo "✓ PASS: UEFI CD-ROM boot verified"
   else
-    echo "WARNING: UEFI boot did not reach expected markers, check /tmp/uefi-boot.log"
+    echo "WARNING: UEFI CD-ROM boot did not reach expected markers, check /tmp/uefi-boot.log"
+  fi
+
+  echo "--> Testing UEFI USB flash drive boot (media=disk)..."
+  timeout 90 qemu-system-x86_64 "${ACCEL[@]}" -bios "$OVMF_PATH" -m 2048 -drive file="$ISO",format=raw,media=disk -nographic -serial mon:stdio -no-reboot 2>&1 | tee /tmp/uefi-usb.log || true
+  if grep -Eqi 'Welcome to GRUB|Linux version|zeros' /tmp/uefi-usb.log; then
+    echo "✓ PASS: UEFI USB flash drive boot verified"
+  else
+    echo "WARNING: UEFI USB flash drive boot did not reach expected markers, check /tmp/uefi-usb.log"
   fi
 else
   echo "OVMF firmware not found, skipping UEFI emulation test."

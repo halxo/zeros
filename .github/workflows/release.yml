@@ -55,7 +55,7 @@ jobs:
             echo "tag=$(PYTHONPATH=. python -c 'from zeros import release;print(release.rolling_tag())')" >> "$GITHUB_OUTPUT"
             echo "title=Zeros Rolling" >> "$GITHUB_OUTPUT"; echo "pre=true" >> "$GITHUB_OUTPUT"
           fi
-      - run: sudo apt-get update && sudo apt-get install -y xorriso squashfs-tools qemu-system-x86 isolinux ovmf
+      - run: sudo apt-get update && sudo apt-get install -y xorriso squashfs-tools qemu-system-x86 isolinux ovmf mtools
       - run: sudo ISO_TAG="${{ steps.t.outputs.tag }}" scripts/build-iso.sh
       - run: scripts/iso-verify.sh "out/zeros-${{ steps.t.outputs.tag }}.iso"
       - uses: actions/upload-artifact@v4

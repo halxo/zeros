@@ -60,12 +60,17 @@ fi
 mksquashfs root tree/image.squashfs -comp xz -noappend -quiet
 
 # 3. Configure GRUB for universal hardware boot (UEFI + BIOS)
-# Set label to ZEROS_LIVE and ensure grub.cfg searches by both label and file fallback
+# Set label to ZEROS_LIVE and ensure grub.cfg searches by both file and label fallback
 LABEL="ZEROS_LIVE"
 mkdir -p tree/boot/grub
 cat > tree/boot/grub/grub.cfg <<EOF
 set default=0
 set timeout=3
+set gfxpayload=keep
+insmod part_gpt
+insmod part_msdos
+insmod fat
+insmod iso9660
 insmod all_video
 insmod gfxterm
 terminal_output gfxterm console
@@ -73,36 +78,47 @@ terminal_input console
 set gfxmode=auto
 
 menuentry 'Zeros OS (Live - Default)' --class gnu-linux --class os {
-    search --no-floppy --set=root -l $LABEL
-    if [ -z "\$root" ]; then search --no-floppy --set=root --file /image.squashfs; fi
+    search --no-floppy --file --set=root /image.squashfs
+    if [ -z "\$root" ]; then search --no-floppy -l $LABEL --set=root; fi
     linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot console=tty0 console=ttyS0,115200
     initrd /boot/gentoo.igz
 }
 
 menuentry 'Zeros OS (Live - Safe Graphics / nomodeset)' --class gnu-linux --class os {
-    search --no-floppy --set=root -l $LABEL
-    if [ -z "\$root" ]; then search --no-floppy --set=root --file /image.squashfs; fi
+    search --no-floppy --file --set=root /image.squashfs
+    if [ -z "\$root" ]; then search --no-floppy -l $LABEL --set=root; fi
     linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot nomodeset console=tty0 console=ttyS0,115200
     initrd /boot/gentoo.igz
 }
 
 menuentry 'Zeros OS (Live - Copy to RAM)' --class gnu-linux --class os {
-    search --no-floppy --set=root -l $LABEL
-    if [ -z "\$root" ]; then search --no-floppy --set=root --file /image.squashfs; fi
+    search --no-floppy --file --set=root /image.squashfs
+    if [ -z "\$root" ]; then search --no-floppy -l $LABEL --set=root; fi
     linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot rd.live.ram=1 console=tty0 console=ttyS0,115200
     initrd /boot/gentoo.igz
 }
 
 menuentry 'Zeros OS (Live - Verbose Debug)' --class gnu-linux --class os {
-    search --no-floppy --set=root -l $LABEL
-    if [ -z "\$root" ]; then search --no-floppy --set=root --file /image.squashfs; fi
+    search --no-floppy --file --set=root /image.squashfs
+    if [ -z "\$root" ]; then search --no-floppy -l $LABEL --set=root; fi
     linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot debug verbose rd.debug console=tty0 console=ttyS0,115200
     initrd /boot/gentoo.igz
 }
 EOF
 
-# 4. Extract original boot options from base ISO (MBR and El Torito)
-eval "BOOTOPTS=( $(xorriso -indev base.iso -report_system_area as_mkisofs -report_el_torito as_mkisofs 2>/dev/null | grep -v -e '^xorriso' -e '^-V ' -e '^--modification-date') )"
+# Inject grub.cfg directly into efi.img so UEFI GRUB finds it without disk probing
+EFI_TMP="/tmp/efimnt.$$"
+mkdir -p "$EFI_TMP"
+if mount -o loop tree/efi.img "$EFI_TMP" 2>/dev/null; then
+  cp tree/boot/grub/grub.cfg "$EFI_TMP/EFI/BOOT/grub.cfg" 2>/dev/null || true
+  umount "$EFI_TMP" || true
+elif command -v mcopy >/dev/null 2>&1; then
+  mcopy -o -i tree/efi.img tree/boot/grub/grub.cfg ::EFI/BOOT/grub.cfg 2>/dev/null || true
+fi
+rm -rf "$EFI_TMP"
+
+# 4. Extract original boot options, removing Apple HFS+ flags that break standard PC MBR
+eval "BOOTOPTS=( $(xorriso -indev base.iso -report_system_area as_mkisofs -report_el_torito as_mkisofs 2>/dev/null | grep -v -e '^xorriso' -e '^-V ' -e '^--modification-date' -e '^-hfsplus' -e '^-apm-block-size') )"
 printf '%s\n' "${BOOTOPTS[@]}" | head -30
 
 # 5. Build final hybrid ISO with ZEROS_LIVE volume label
