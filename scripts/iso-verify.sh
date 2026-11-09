@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Structural + QEMU execution test of the built Zeros ISO.
-# Tests both BIOS and modern UEFI boot.
+# Tests both BIOS and modern UEFI boot, EFI Secure Boot binaries, and Desktop session files.
 # Usage: iso-verify.sh path/to/zeros.iso
 set -euo pipefail
 ISO=$1
@@ -9,11 +9,19 @@ echo "==> Checking ISO structure..."
 xorriso -indev "$ISO" -report_el_torito plain 2>&1 | grep -qi 'El Torito' && echo "✓ El Torito boot record present"
 xorriso -indev "$ISO" -ls / 2>&1 | grep -q image.squashfs && echo "✓ image.squashfs present"
 
+echo "==> Verifying EFI Bootloader files..."
+xorriso -indev "$ISO" -ls /EFI/BOOT 2>&1 | grep -qi 'BOOTX64.EFI' && echo "✓ BOOTX64.EFI present in ISO"
+xorriso -indev "$ISO" -ls /boot/grub 2>&1 | grep -q 'grub.cfg' && echo "✓ grub.cfg present in ISO"
+
 echo "==> Verifying injected Zeros components..."
 xorriso -osirrox on -indev "$ISO" -extract /image.squashfs /tmp/test-squashfs.img >/dev/null 2>&1
 unsquashfs -l /tmp/test-squashfs.img | grep -q 'usr/local/bin/zeros-install' && echo "✓ zeros-install injected"
 unsquashfs -l /tmp/test-squashfs.img | grep -q 'usr/local/bin/zeros-tui' && echo "✓ zeros-tui injected"
+unsquashfs -l /tmp/test-squashfs.img | grep -q 'usr/local/bin/zeros-installer-gui' && echo "✓ zeros-installer-gui injected"
+unsquashfs -l /tmp/test-squashfs.img | grep -q 'usr/local/bin/zeros-desktop' && echo "✓ zeros-desktop injected"
+unsquashfs -l /tmp/test-squashfs.img | grep -q 'etc/profile.d/zeros-session.sh' && echo "✓ zeros-session profile autostart injected"
 unsquashfs -l /tmp/test-squashfs.img | grep -q 'usr/share/zeros-overlay' && echo "✓ zeros-overlay injected"
+unsquashfs -l /tmp/test-squashfs.img | grep -q 'usr/share/zeros-macshell' && echo "✓ zeros-macshell injected"
 rm -f /tmp/test-squashfs.img
 
 echo "==> Testing BIOS boot in QEMU (kernel execution)..."

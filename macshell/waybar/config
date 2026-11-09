@@ -1,7 +1,38 @@
-{ "layer":"top","position":"top","height":28,
-  "modules-left":["custom/zeros","hyprland/window"],
-  "modules-center":[],
-  "modules-right":["network","battery","pulseaudio","clock"],
-  "custom/zeros":{"format":"Z","tooltip":false},
-  "clock":{"format":"{:%a %b %d  %H:%M}"},
-  "battery":{"format":"{capacity}%"} }
+{
+  "layer": "top",
+  "position": "top",
+  "height": 30,
+  "modules-left": ["custom/zeros", "custom/install", "hyprland/window"],
+  "modules-center": ["clock"],
+  "modules-right": ["network", "cpu", "memory", "battery", "pulseaudio"],
+  "custom/zeros": {
+    "format": "  ",
+    "tooltip": "Zeros System Menu",
+    "on-click": "zeros-welcome"
+  },
+  "custom/install": {
+    "format": " ⚡ Install Zeros ",
+    "tooltip": "Launch Zeros Installation Wizard",
+    "on-click": "zeros-installer-gui"
+  },
+  "clock": {
+    "format": "{:%a %b %d  %H:%M}"
+  },
+  "cpu": {
+    "format": "CPU {usage}%"
+  },
+  "memory": {
+    "format": "RAM {}%"
+  },
+  "battery": {
+    "format": "{capacity}%"
+  },
+  "network": {
+    "format-wifi": "  {essid}",
+    "format-ethernet": "󰈀  Eth",
+    "format-disconnected": "⚠ Offline"
+  },
+  "pulseaudio": {
+    "format": "Vol {volume}%"
+  }
+}

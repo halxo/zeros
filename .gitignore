@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+out/
+build/
+dist/
+*.iso
+*.iso.sha256
+*.raw
+*.img

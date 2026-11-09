@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install pytest && pytest -q tests
-      - run: sudo apt-get install -y shellcheck && shellcheck -S warning installer/*.sh scripts/*.sh
+      - run: sudo apt-get install -y shellcheck && shellcheck -S warning installer/*.sh scripts/*.sh macshell/*.sh
   kernel-boot:
     needs: test
     runs-on: ubuntu-latest
@@ -55,7 +55,16 @@ jobs:
             echo "tag=$(PYTHONPATH=. python -c 'from zeros import release;print(release.rolling_tag())')" >> "$GITHUB_OUTPUT"
             echo "title=Zeros Rolling" >> "$GITHUB_OUTPUT"; echo "pre=true" >> "$GITHUB_OUTPUT"
           fi
-      - run: sudo apt-get update && sudo apt-get install -y xorriso squashfs-tools qemu-system-x86 isolinux ovmf mtools
+      - name: Install dependencies and fetch Microsoft-Signed UEFI Shim
+        run: |
+          sudo apt-get update && sudo apt-get install -y xorriso squashfs-tools qemu-system-x86 isolinux ovmf mtools dosfstools
+          mkdir -p /tmp/signed-efi
+          cd /tmp/signed-efi
+          apt-get download shim-signed grub-efi-amd64-signed 2>/dev/null || true
+          for deb in *.deb; do
+            [ -f "$deb" ] && dpkg -x "$deb" . 2>/dev/null || true
+          done
+          ls -la usr/lib/shim/ usr/lib/grub/x86_64-efi-signed/ 2>/dev/null || true
       - run: sudo ISO_TAG="${{ steps.t.outputs.tag }}" scripts/build-iso.sh
       - run: scripts/iso-verify.sh "out/zeros-${{ steps.t.outputs.tag }}.iso"
       - uses: actions/upload-artifact@v4

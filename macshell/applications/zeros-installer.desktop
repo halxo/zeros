@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Install Zeros OS
+Comment=Interactive Installer for Zeros Linux
+Exec=zeros-installer-gui
+Icon=system-software-install
+Terminal=false
+Type=Application
+Categories=System;Utility;
+Keywords=install;installer;zeros;gentoo;os;

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Zeros Welcome
+Comment=Welcome to Zeros Operating System
+Exec=zeros-welcome
+Icon=dialog-information
+Terminal=true
+Type=Application
+Categories=System;Utility;
+Keywords=welcome;zeros;setup;network;hardware;

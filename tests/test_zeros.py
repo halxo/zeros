@@ -39,3 +39,24 @@ def test_updater_pending_then_ok(tmp_path, monkeypatch):
     updater.save({"pending": "snap1", "last_good": None})
     assert updater.boot_ok()["last_good"] == "snap1"
     assert updater.load()["pending"] is None
+
+def test_macshell_configs_and_desktop():
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    hypr_conf = os.path.join(root, "macshell", "hypr", "hyprland.conf")
+    with open(hypr_conf, "r") as f:
+        hypr_text = f.read()
+    assert "zeros-installer-gui" in hypr_text
+    assert "windowrulev2 = float, class:^(zeros-installer)$" in hypr_text
+
+    import json
+    waybar_cfg = os.path.join(root, "macshell", "waybar", "config")
+    with open(waybar_cfg, "r") as f:
+        cfg = json.load(f)
+    assert "custom/install" in cfg["modules-left"]
+    assert cfg["custom/install"]["on-click"] == "zeros-installer-gui"
+
+    desktop_file = os.path.join(root, "macshell", "applications", "zeros-installer.desktop")
+    with open(desktop_file, "r") as f:
+        desktop_text = f.read()
+    assert "Exec=zeros-installer-gui" in desktop_text
+    assert "Type=Application" in desktop_text

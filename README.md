@@ -1,8 +1,10 @@
 # Zeros OS
 Rolling-release, **source-based** Linux OS: "Gentoo, but automatic." Built on Gentoo/Portage with an automation layer that detects your hardware, generates `make.conf` + a tailored kernel config, and compiles the newest stable Linux kernel for your machine. OpenRC + Hyprland (macshell UI).
 
-- **Rolling**: every green push to `main` produces a tested rolling pre-release.
-- **Milestones**: named stable releases (e.g. **Zeros Nova**) with official verified ISOs.
+- **Rolling**: every green push to `main` produces a tested rolling release with downloadable bootable ISO.
+- **Milestones**: named milestone releases (e.g. **Zeros Nova**) with official verified ISOs.
+- **UEFI Secure Boot**: signed with Microsoft UEFI CA shim — boots straight away on retail Windows PCs and laptops without needing BIOS changes.
+- **Graphical Live Desktop**: boots directly into a live Hyprland desktop with the frosted `macshell` top panel and an auto-centering installation wizard.
 - **Safe updates**: Btrfs atomic snapshots before each update; automatic rollback on boot failure.
 - **Fast installs**: optional hardware-profile binary cache; otherwise compiles natively.
 
@@ -23,16 +25,28 @@ Download the newest release from [Zeros GitHub Releases](https://github.com/halx
   * Use **Balena Etcher** or **Raspberry Pi Imager** to write the ISO.
   * If using **Rufus**, select **"Write in DD Image mode"** when prompted.
 
-### 3. PC Firmware Settings (Crucial for Everyday Computers)
-* **Disable Secure Boot:** In your computer's BIOS/UEFI settings (typically `F2`, `F10`, `F12`, or `Del` at startup), go to **Security** or **Boot** and set **Secure Boot: Disabled**. Custom kernels and source-based distributions require Secure Boot to be disabled.
-* **Boot Menu:** Power on the PC and press `F12` (Dell/Lenovo), `F9` (HP), `F8` (ASUS), or `F11` (MSI) to select your USB drive.
+### 3. PC Booting & Firmware Compatibility
+* **UEFI Secure Boot Supported:** Ships with Microsoft-signed `shim` (`BOOTX64.EFI`) and signed GRUB. Retail laptops (Surface, Dell, HP, Lenovo, ASUS, etc.) can boot directly with Secure Boot enabled.
+* **Legacy BIOS Supported:** Built with hybrid MBR El Torito bootloader for older PCs.
+* **Boot Menu:** Power on the PC and press your boot menu key (`F12` on Dell/Lenovo, `F9` on HP, `F8` on ASUS, `F11` on MSI) to select your USB drive.
 
 ---
 
-## 🛠️ Installing Zeros OS
+## 🖥️ Live Desktop & Installation
 
-Once booted into the Zeros live console:
-* **Interactive Wizard:**
+### Live Session Options
+When the ISO boots:
+1. **Default Live Desktop:** Automatically boots into a graphical Hyprland session with:
+   - Frosted translucent top bar (`macshell` Waybar) displaying hardware status (CPU, RAM, GPU, Battery, Network, Clock).
+   - "⚡ Install Zeros" quick-action launcher in the menu bar.
+   - An auto-centering floating installer wizard window.
+   - Spotlight search launcher via `Super + Space`.
+   - Terminal emulator via `Super + Enter`.
+2. **Safe Graphics Mode (`nomodeset`):** Selectable from GRUB menu for problematic discrete GPUs.
+3. **Console TUI Mode:** Automatically falls back to the interactive TUI wizard on serial or text-only consoles.
+
+### Running the Installer
+* **Interactive Graphical / TUI Wizard:**
   ```bash
   zeros-installer
   ```

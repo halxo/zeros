@@ -116,6 +116,22 @@ run chroot "$TARGET" grub-install --target=x86_64-efi --efi-directory=/boot/efi 
 run chroot "$TARGET" grub-install --target=i386-pc --recheck "$DISK" 2>/dev/null || true
 run chroot "$TARGET" grub-mkconfig -o /boot/grub/grub.cfg || true
 
+# 7b. Install Microsoft-Signed Shim for target UEFI Secure Boot support
+if [ -d "/usr/share/zeros-shim" ] && [ -f "/usr/share/zeros-shim/BOOTX64.EFI" ]; then
+  echo "Installing Microsoft-Signed Shim and MokManager for UEFI Secure Boot..."
+  run mkdir -p "$TARGET/boot/efi/EFI/BOOT" "$TARGET/boot/efi/EFI/zeros"
+  if [ -f "$TARGET/boot/efi/EFI/BOOT/BOOTX64.EFI" ] && [ ! -f "$TARGET/boot/efi/EFI/BOOT/grubx64.efi" ]; then
+    run cp "$TARGET/boot/efi/EFI/BOOT/BOOTX64.EFI" "$TARGET/boot/efi/EFI/BOOT/grubx64.efi"
+  fi
+  if [ -f "/usr/share/zeros-shim/grubx64.efi" ]; then
+    run cp "/usr/share/zeros-shim/grubx64.efi" "$TARGET/boot/efi/EFI/BOOT/grubx64.efi"
+    run cp "/usr/share/zeros-shim/grubx64.efi" "$TARGET/boot/efi/EFI/zeros/grubx64.efi" 2>/dev/null || true
+  fi
+  run cp "/usr/share/zeros-shim/BOOTX64.EFI" "$TARGET/boot/efi/EFI/BOOT/BOOTX64.EFI"
+  [ -f "/usr/share/zeros-shim/mmx64.efi" ] && run cp "/usr/share/zeros-shim/mmx64.efi" "$TARGET/boot/efi/EFI/BOOT/mmx64.efi"
+  run cp "/usr/share/zeros-shim/BOOTX64.EFI" "$TARGET/boot/efi/EFI/zeros/shimx64.efi" 2>/dev/null || true
+fi
+
 # 8. Compile newest Linux kernel tailored to this machine
 echo "Kernel build steps for newest stable Linux:"
 python3 -c "from zeros import kernel; print('\n'.join(kernel.build_script(kernel.latest_stable())))" 2>/dev/null || true
