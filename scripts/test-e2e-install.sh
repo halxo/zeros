@@ -32,6 +32,7 @@ echo "==> Running zeros-install on virtual disk..."
 sudo bash -c "cd '$REPO' && PYTHONPATH=zeros_py installer/zeros-install.sh '$LOOP_DEV' --really"
 
 echo "==> Verifying Btrfs subvolumes and fstab on installed disk..."
+sudo umount -R /mnt/gentoo 2>/dev/null || true
 sudo mount -o subvol=@,compress=zstd:3 "${LOOP_DEV}p2" /mnt/gentoo
 [ -f /mnt/gentoo/etc/portage/make.conf ] && echo "✓ make.conf generated on target"
 [ -f /mnt/gentoo/etc/fstab ] && echo "✓ fstab generated on target"

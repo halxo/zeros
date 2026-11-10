@@ -28,11 +28,15 @@ echo "==> Testing BIOS boot in QEMU (kernel execution)..."
 ACCEL=(); [ -w /dev/kvm ] && ACCEL=(-enable-kvm)
 timeout 120 qemu-system-x86_64 "${ACCEL[@]}" -m 2048 -cdrom "$ISO" -boot d -nographic -serial mon:stdio -no-reboot 2>&1 | tee /tmp/bios-boot.log || true
 
+chmod 666 "$ISO" 2>/dev/null || true
+
 echo "---- Boot output sample ----"
 tail -n 25 /tmp/bios-boot.log
 
-if grep -Eqi 'Linux version|zeros|Gentoo|dracut|Welcome to GRUB' /tmp/bios-boot.log; then
-  echo "✓ PASS: BIOS boot verified (bootloader and kernel reached)"
+if grep -Eqi 'Linux version|OpenRC|dokeymap|Booting .Zeros' /tmp/bios-boot.log; then
+  echo "✓ PASS: BIOS boot verified (kernel execution reached)"
+elif grep -Eqi 'Welcome to GRUB' /tmp/bios-boot.log; then
+  echo "✓ PASS: BIOS boot verified (GRUB bootloader reached)"
 else
   echo "✗ FAIL: No bootloader or kernel output detected"
   exit 1
@@ -48,7 +52,7 @@ if [ -n "$OVMF_PATH" ]; then
   echo "Found OVMF firmware at $OVMF_PATH"
   echo "--> Testing UEFI CD-ROM boot..."
   timeout 90 qemu-system-x86_64 "${ACCEL[@]}" -bios "$OVMF_PATH" -m 2048 -cdrom "$ISO" -boot d -nographic -serial mon:stdio -no-reboot 2>&1 | tee /tmp/uefi-boot.log || true
-  if grep -Eqi 'Welcome to GRUB|Linux version|zeros' /tmp/uefi-boot.log; then
+  if grep -Eqi 'Linux version|OpenRC|dokeymap|Welcome to GRUB|Booting .Zeros' /tmp/uefi-boot.log; then
     echo "✓ PASS: UEFI CD-ROM boot verified"
   else
     echo "WARNING: UEFI CD-ROM boot did not reach expected markers, check /tmp/uefi-boot.log"
@@ -56,7 +60,7 @@ if [ -n "$OVMF_PATH" ]; then
 
   echo "--> Testing UEFI USB flash drive boot (media=disk)..."
   timeout 90 qemu-system-x86_64 "${ACCEL[@]}" -bios "$OVMF_PATH" -m 2048 -drive file="$ISO",format=raw,media=disk -nographic -serial mon:stdio -no-reboot 2>&1 | tee /tmp/uefi-usb.log || true
-  if grep -Eqi 'Welcome to GRUB|Linux version|zeros' /tmp/uefi-usb.log; then
+  if grep -Eqi 'Linux version|OpenRC|dokeymap|Welcome to GRUB|Booting .Zeros' /tmp/uefi-usb.log; then
     echo "✓ PASS: UEFI USB flash drive boot verified"
   else
     echo "WARNING: UEFI USB flash drive boot did not reach expected markers, check /tmp/uefi-usb.log"

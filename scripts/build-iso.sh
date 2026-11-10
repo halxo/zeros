@@ -128,7 +128,7 @@ mksquashfs root tree/image.squashfs -comp xz -noappend -quiet
 
 # 3. Configure GRUB for universal hardware boot (UEFI + BIOS)
 LABEL="ZEROS_LIVE"
-mkdir -p tree/boot/grub
+mkdir -p tree/boot/grub tree/EFI/BOOT
 cat > tree/boot/grub/grub.cfg <<EOF
 set default=0
 set timeout=3
@@ -146,75 +146,51 @@ set gfxmode=auto
 menuentry 'Zeros OS (Live Desktop - Hyprland & macshell)' --class gnu-linux --class os {
     search --no-floppy --file --set=root /image.squashfs
     if [ -z "\$root" ]; then search --no-floppy -l $LABEL --set=root; fi
-    linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot console=tty0 console=ttyS0,115200
+    linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot slowusb loop=/image.squashfs looptype=squashfs console=ttyS0,115200 console=tty0
     initrd /boot/gentoo.igz
 }
 
 menuentry 'Zeros OS (Safe Graphics / nomodeset)' --class gnu-linux --class os {
     search --no-floppy --file --set=root /image.squashfs
     if [ -z "\$root" ]; then search --no-floppy -l $LABEL --set=root; fi
-    linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot nomodeset console=tty0 console=ttyS0,115200
+    linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot slowusb loop=/image.squashfs looptype=squashfs nomodeset console=ttyS0,115200 console=tty0
     initrd /boot/gentoo.igz
 }
 
 menuentry 'Zeros OS (Live - Copy to RAM)' --class gnu-linux --class os {
     search --no-floppy --file --set=root /image.squashfs
     if [ -z "\$root" ]; then search --no-floppy -l $LABEL --set=root; fi
-    linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot rd.live.ram=1 console=tty0 console=ttyS0,115200
+    linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot slowusb loop=/image.squashfs looptype=squashfs rd.live.ram=1 console=ttyS0,115200 console=tty0
     initrd /boot/gentoo.igz
 }
 
-menuentry 'Zeros OS (Live - Verbose Debug)' --class gnu-linux --class os {
+menuentry 'Zeros OS (Live - Verbose Debug & Serial Console)' --class gnu-linux --class os {
     search --no-floppy --file --set=root /image.squashfs
     if [ -z "\$root" ]; then search --no-floppy -l $LABEL --set=root; fi
-    linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot debug verbose rd.debug console=tty0 console=ttyS0,115200
+    linux /boot/gentoo dokeymap root=live:CDLABEL=$LABEL rd.live.dir=/ rd.live.squashimg=image.squashfs cdroot slowusb loop=/image.squashfs looptype=squashfs debug verbose rd.debug console=tty0 console=ttyS0,115200
     initrd /boot/gentoo.igz
 }
 EOF
 
-# 4. Configure UEFI Secure Boot and EFI bootloader
-mkdir -p tree/EFI/BOOT
+# 4. Configure UEFI EFI bootloader and efi.img
 cp tree/boot/grub/grub.cfg tree/EFI/BOOT/grub.cfg
 
-if [ -n "$SHIM_SRC" ] && [ -n "$GRUB_SIGNED_SRC" ]; then
-  echo "Installing Microsoft-Signed Shim and MokManager into ISO EFI boot path..."
-  if [ -f tree/EFI/BOOT/BOOTX64.EFI ]; then
-    cp tree/EFI/BOOT/BOOTX64.EFI tree/EFI/BOOT/grubx64.efi.orig
-  fi
-  cp "$SHIM_SRC" tree/EFI/BOOT/BOOTX64.EFI
-  cp "$SHIM_SRC" tree/EFI/BOOT/shimx64.efi
-  [ -n "$MM_SRC" ] && cp "$MM_SRC" tree/EFI/BOOT/mmx64.efi
-  cp "$GRUB_SIGNED_SRC" tree/EFI/BOOT/grubx64.efi
-fi
-
-# Rebuild / expand tree/efi.img to 16MB FAT image so signed binaries fit cleanly
-echo "Configuring efi.img FAT system area..."
-dd if=/dev/zero of=tree/efi.img.new bs=1M count=16 status=none
-mkfs.vfat -F 32 -n "ZEROS_EFI" tree/efi.img.new >/dev/null
-
-if command -v mcopy >/dev/null 2>&1; then
-  mmd -i tree/efi.img.new ::EFI ::EFI/BOOT 2>/dev/null || true
-  for f in tree/EFI/BOOT/*; do
-    [ -f "$f" ] && mcopy -o -i tree/efi.img.new "$f" "::EFI/BOOT/$(basename "$f")"
-  done
-  mv tree/efi.img.new tree/efi.img
-else
-  EFI_TMP="/tmp/efimnt.$$"
-  mkdir -p "$EFI_TMP"
-  if mount -o loop tree/efi.img.new "$EFI_TMP" 2>/dev/null; then
-    mkdir -p "$EFI_TMP/EFI/BOOT"
-    cp -r tree/EFI/BOOT/* "$EFI_TMP/EFI/BOOT/" 2>/dev/null || true
-    umount "$EFI_TMP" || true
-    mv tree/efi.img.new tree/efi.img
+# Update grub.cfg inside existing tree/efi.img in place so El Torito sector geometry (5760 sectors) is strictly preserved
+if [ -f tree/efi.img ]; then
+  echo "Updating grub.cfg inside tree/efi.img FAT system area..."
+  if command -v mcopy >/dev/null 2>&1; then
+    mcopy -o -i tree/efi.img tree/boot/grub/grub.cfg ::EFI/BOOT/grub.cfg 2>/dev/null || true
+    mcopy -o -i tree/efi.img tree/boot/grub/grub.cfg ::boot/grub/grub.cfg 2>/dev/null || true
   else
-    rm -f tree/efi.img.new
-    # Fallback to existing efi.img
+    EFI_TMP="/tmp/efimnt.$$"
+    mkdir -p "$EFI_TMP"
     if mount -o loop tree/efi.img "$EFI_TMP" 2>/dev/null; then
       cp tree/boot/grub/grub.cfg "$EFI_TMP/EFI/BOOT/grub.cfg" 2>/dev/null || true
+      [ -d "$EFI_TMP/boot/grub" ] && cp tree/boot/grub/grub.cfg "$EFI_TMP/boot/grub/grub.cfg" 2>/dev/null || true
       umount "$EFI_TMP" || true
     fi
+    rm -rf "$EFI_TMP"
   fi
-  rm -rf "$EFI_TMP"
 fi
 
 # 5. Extract original boot options, removing Apple HFS+ flags that break standard PC MBR
@@ -223,5 +199,7 @@ printf '%s\n' "${BOOTOPTS[@]}" | head -30
 
 # 6. Build final hybrid ISO with ZEROS_LIVE volume label
 xorriso -as mkisofs -r -J -joliet-long -iso-level 3 -V "$LABEL" "${BOOTOPTS[@]}" -o "$OUT/zeros-$TAG.iso" tree
+chmod -R a+rX "$OUT"
+chmod 666 "$OUT"/zeros-* 2>/dev/null || true
 ( cd "$OUT" && sha256sum "zeros-$TAG.iso" > "zeros-$TAG.iso.sha256" )
 ls -lh "$OUT"

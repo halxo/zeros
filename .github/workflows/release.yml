@@ -66,7 +66,7 @@ jobs:
           done
           ls -la usr/lib/shim/ usr/lib/grub/x86_64-efi-signed/ 2>/dev/null || true
       - run: sudo ISO_TAG="${{ steps.t.outputs.tag }}" scripts/build-iso.sh
-      - run: scripts/iso-verify.sh "out/zeros-${{ steps.t.outputs.tag }}.iso"
+      - run: sudo scripts/iso-verify.sh "out/zeros-${{ steps.t.outputs.tag }}.iso"
       - uses: actions/upload-artifact@v4
         with: { name: iso, path: "out/*", retention-days: 7 }
       - name: Output meta

@@ -60,3 +60,16 @@ def test_macshell_configs_and_desktop():
         desktop_text = f.read()
     assert "Exec=zeros-installer-gui" in desktop_text
     assert "Type=Application" in desktop_text
+
+def test_build_iso_grub_and_permissions():
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    build_sh = os.path.join(root, "scripts", "build-iso.sh")
+    with open(build_sh, "r") as f:
+        text = f.read()
+    # The default and safe-graphics entries MUST end with console=tty0 so the physical screen is primary /dev/console
+    assert "slowusb" in text
+    assert "loop=/image.squashfs" in text
+    assert "console=ttyS0,115200 console=tty0" in text
+    # Verify chmod is present to protect against permission denied in QEMU verification
+    assert 'chmod 666 "$OUT"/zeros-*' in text
+
